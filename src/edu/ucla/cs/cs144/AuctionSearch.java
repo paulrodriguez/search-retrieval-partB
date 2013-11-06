@@ -5,8 +5,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import java.sql.DriverManager;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -103,12 +101,6 @@ public class AuctionSearch implements IAuctionSearch {
 	}
 	
 	
-	private Connection getConn(boolean readOnly) throws Exception{
-		Class.forName("com.mysql.jdbc.Driver").newInstance();
-		Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/CS144", "cs144", "");
-            conn.setReadOnly(readOnly);        
-            return conn;
-	}
 	public SearchResult[] advancedSearch(SearchConstraint[] constraints, 
 			int numResultsToSkip, int numResultsToReturn) {
 		// TODO: Your code here!
@@ -147,7 +139,9 @@ public class AuctionSearch implements IAuctionSearch {
 				}
 			}
 		}
+		
 		System.out.println("mysql Query: "+mysql_query);
+		
 		try {
 				//create a mysql query if queries where issued for mysql indexes
 				if(!mysql_query.equals("") || !bidder_value.equals("")) {
@@ -162,7 +156,7 @@ public class AuctionSearch implements IAuctionSearch {
 							bidder = " AND ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" + bidder_value + "\")";
 						}
 					}
-					Connection conn = getConn(true);
+					Connection conn = DbManager.getConnection(true);
 					Statement stmt = conn.createStatement();
 					ResultSet rs = stmt.executeQuery("SELECT ItemID, Name FROM Items WHERE "+mysql_query+bidder);
 					while(rs.next()) {
@@ -175,6 +169,9 @@ public class AuctionSearch implements IAuctionSearch {
 				for (int i = 0; i < mysql_results.size(); i++) {
 					fResults[i] = mysql_results.get(i);
 				}
+				conn.close();
+				stmt.close();
+				rs.close();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
