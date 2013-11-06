@@ -5,6 +5,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import java.sql.DriverManager;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -24,6 +26,7 @@ import edu.ucla.cs.cs144.SearchConstraint;
 import edu.ucla.cs.cs144.SearchResult;
 
 import java.util.ArrayList;
+
 public class AuctionSearch implements IAuctionSearch {
 
 	/* 
@@ -48,8 +51,8 @@ public class AuctionSearch implements IAuctionSearch {
 	public SearchResult[] basicSearch(String query, int numResultsToSkip, 
 			int numResultsToReturn) {
 		// TODO: Your code here!
-		SearchResult[] final_results = new SearchResult[0];
-		ArrayList<SearchResult> results = new ArrayList<SearchResult>(); 
+		SearchResult[] results = new SearchResult[0];
+		ArrayList<SearchResult> r = new ArrayList<SearchResult>(); 
 		try {
 			
 			IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")+"/ebay-index");
@@ -57,41 +60,126 @@ public class AuctionSearch implements IAuctionSearch {
 			
 			Query q = parser.parse(query);        
 			Hits hits = searcher.search(q);
-
-			Iterator<Hit> iter =  hits.iterator();
-			
-			int iterpos = 0;
-
-			while (iter.hasNext()) {
-				if(iterpos > numResultsToSkip-1) {
-					Hit hit = iter.next();
-					Document doc = hit.getDocument();
-					results.add(new SearchResult(doc.get("ItemID"), doc.get("Name")));
+			//returns empty set if total values queried is less than the number of values to be skipped 
+			if(numResultsToSkip>hits.length()) return new SearchResult[0];
+			//Iterator<Hit> iter = hits.iterator();
+			int skipped = 0; //keeps track of how many we have skipped
+			int added = 0; //keeps track of how many we have returned/added
+			//iterate through the results received from lucene
+			for (int i = 0; i < hits.length(); i++) {
+				if(skipped > numResultsToSkip-1) {
+					Document doc = hits.doc(i);
+					r.add(new SearchResult(doc.get("ItemID"), doc.get("Name")));
+					added++;
 				}
-				iterpos ++;
+				if(added == numResultsToReturn) {
+					break;
+				}
+				skipped++;
 			}
 		
-			final_results = new SearchResult[results.size()];
-			for (int i=0; i < results.size(); i++) {
-				final_results[i] = results.get(i);
+			results = new SearchResult[r.size()];
+			for (int i=0; i < r.size(); i++) {
+				results[i] = r.get(i);
 			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		return final_results;
+		
+		return results;
 	}
-
+	
+	
+	/*
+	take the field name given in the contraint and return appropriate index name or sql attribute name
+	*/
+	private String encodeFieldName (String fn) {
+		if(fn.equals(FieldName.ItemName)) return "Name";
+		else if(fn.equals(FieldName.SellerId)) return "Seller";
+		else if(fn.equals(FieldName.BuyPrice)) return "Buy_Price";
+		else if(fn.equals(FieldName.EndTime)) return "Ends";
+		else return fn;
+	}
+	
+	
+	private Connection getConn(boolean readOnly) throws Exception{
+		Class.forName("com.mysql.jdbc.Driver").newInstance();
+		Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/CS144", "cs144", "");
+            conn.setReadOnly(readOnly);        
+            return conn;
+	}
 	public SearchResult[] advancedSearch(SearchConstraint[] constraints, 
 			int numResultsToSkip, int numResultsToReturn) {
 		// TODO: Your code here!
+		SearchResult[] fResults = new SearchResult[0];
+		
+		String lucene_query = ""; //query for lucene index
+		String mysql_query = ""; //query for mysql 
+		String bidder_value = ""; //hold bidder value
+		ArrayList<SearchResult> mysql_results= new ArrayList<SearchResult>();
+		String itemid = "";
+		String name = "";
+		for (int i = 0; i < constraints.length; i++) {
+			System.out.println("field name: " +constraints[i].getFieldName());
+			//create lucene query 
+			if (constraints[i].getFieldName().equals(FieldName.ItemName) || constraints[i].getFieldName().equals(FieldName.Category) || constraints[i].getFieldName().equals(FieldName.Description)) {
+				if(lucene_query.equals("") ){
+					lucene_query = encodeFieldName(constraints[i].getFieldName()) + ":\"" + constraints[i].getValue() + "\"";
+				}
+				else {
+					lucene_query += " AND " + encodeFieldName(constraints[i].getFieldName()) + ":\"" + constraints[i].getValue() + "\"";
+				}
+			}
+			//build query for sql
+			else if(constraints[i].getFieldName().equals(FieldName.SellerId) || constraints[i].getFieldName().equals(FieldName.BuyPrice) || constraints[i].getFieldName().equals(FieldName.BidderId) || constraints[i].getFieldName().equals(FieldName.EndTime)){
+				//store the value of bidder id
+				if(constraints[i].getFieldName().equals(FieldName.BidderId)) {
+					bidder_value = constraints[i].getValue();
+				}
+				else {
+					if(mysql_query.equals("")) {
+						mysql_query = " "+ encodeFieldName(constraints[i].getFieldName()) + "=" + constraints[i].getValue();
+					}
+					else {
+						mysql_query += " AND " + encodeFieldName(constraints[i].getFieldName()) + "=" + constraints[i].getValue();
+					}
+				}
+			}
+		}
+		System.out.println("mysql Query: "+mysql_query);
 		try {
-			
+				//create a mysql query if queries where issued for mysql indexes
+				if(!mysql_query.equals("") || !bidder_value.equals("")) {
+					String bidder = "";
+					//creating a query on bidders
+					if(!bidder_value.equals("")) {
+						//if mysql query for items is empty, then just query on bids table
+						if(mysql_query.equals("")) {
+							bidder = "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" + bidder_value + "\")";
+						}
+						else {
+							bidder = " AND ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" + bidder_value + "\")";
+						}
+					}
+					Connection conn = getConn(true);
+					Statement stmt = conn.createStatement();
+					ResultSet rs = stmt.executeQuery("SELECT ItemID, Name FROM Items WHERE "+mysql_query+bidder);
+					while(rs.next()) {
+						itemid = rs.getString("ItemID");
+						name = rs.getString("Name");
+						mysql_results.add(new SearchResult(itemid, name));
+					}
+				}
+				fResults = new SearchResult[mysql_results.size()];
+				for (int i = 0; i < mysql_results.size(); i++) {
+					fResults[i] = mysql_results.get(i);
+				}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		return new SearchResult[0];
+		return fResults;
 	}
 
 	public String getXMLDataForItemId(String itemId) {

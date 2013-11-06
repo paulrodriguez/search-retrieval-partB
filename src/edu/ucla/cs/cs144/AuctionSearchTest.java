@@ -3,7 +3,6 @@ package edu.ucla.cs.cs144;
 import java.util.Calendar;
 import java.util.Date;
 
-import java.io.*;
 
 import edu.ucla.cs.cs144.AuctionSearch;
 import edu.ucla.cs.cs144.SearchResult;
@@ -17,13 +16,11 @@ public class AuctionSearchTest {
 
 		String message = "Test message";
 		String reply = as.echo(message);
-		System.out.println("Reply: " + reply);
-		//remove after done testing
-		
+		System.out.println("Reply: " + reply);		
 		
 		String query = "superman";
-		//change third param to 20 after done testing
-		SearchResult[] basicResults = as.basicSearch(query, 0, 0);
+
+		SearchResult[] basicResults = as.basicSearch(query, 0, 20);
 		System.out.println("Basic Seacrh Query: " + query);
 		System.out.println("Received " + basicResults.length + " results");
 		for(SearchResult result : basicResults) {
@@ -47,5 +44,15 @@ public class AuctionSearchTest {
 		System.out.println(item);
 
 		// Add your own test here
+		
+		query = "superman";
+
+		basicResults = as.basicSearch(query, 80, 20);
+		System.out.println("Basic Seacrh Query: " + query);
+		System.out.println("Received " + basicResults.length + " results");
+		for(SearchResult result : basicResults) {
+			System.out.println(result.getItemId() + ": " + result.getName());
+			
+		}
 	}
 }
