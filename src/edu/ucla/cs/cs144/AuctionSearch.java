@@ -309,24 +309,6 @@ public class AuctionSearch implements IAuctionSearch {
 				xmlItems3 += "\n\t<Description>" + rsItems.getString("Description") 
 						+ "</Description>\n</Item>";
 
-				// Categories table cross-lookup
-				ResultSet rsCats = stmt.executeQuery("SELECT Category FROM Categories "
-						+ "INNER JOIN Items ON Categories.ItemID = Items.ItemID AND "
-						+ "Categories.ItemID = " + itemId);
-				/*
-				ResultSet rsCats = stmt.executeQuery("SELECT Category, COUNT(Category)"
-						+ " FROM Categories INNER JOIN Items ON Categories.ItemID = "
-						+ "Items.ItemID AND Categories.ItemID = " + itemId
-						+ " GROUP BY Categories.Category);
-						*/
-				while(rsCats.next())
-				{
-					// TODO why is this only giving me one category result? 
-					// the SQL query is formed fine
-					xmlCats = "\n\t<Category>" + rsCats.getString(1) + 
-						"</Category>";
-				}
-				rsCats.close();
 
 			}
 			else // no match
@@ -337,6 +319,26 @@ public class AuctionSearch implements IAuctionSearch {
 
 			rsItems.close();
 			stmt.close();
+
+			// Categories table cross-lookup
+			Statement stmt2 = conn.createStatement();
+			ResultSet rsCats = stmt2.executeQuery("SELECT Category FROM Categories "
+					+ "INNER JOIN Items ON Categories.ItemID = Items.ItemID AND "
+					+ "Categories.ItemID = " + itemId);
+			/*
+			ResultSet rsCats = stmt.executeQuery("SELECT Category, COUNT(Category)"
+					+ " FROM Categories INNER JOIN Items ON Categories.ItemID = "
+					+ "Items.ItemID AND Categories.ItemID = " + itemId
+					+ " GROUP BY Categories.Category);
+					*/
+			while(rsCats.next())
+			{
+				xmlCats += "\n\t<Category>" + rsCats.getString("Category") + 
+					"</Category>";
+			}
+			rsCats.close();
+			stmt2.close();
+
 			conn.close();
 
 			// will be empty if something other than item ID mismatch went wrong
