@@ -288,15 +288,46 @@ public class AuctionSearch implements IAuctionSearch {
 
 			Connection conn = DbManager.getConnection(true);
 			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery("SELECT * FROM Items WHERE " 
-											+ itemId + " = ItemID;");
+			ResultSet rsItems = stmt.executeQuery("SELECT * FROM Items WHERE " 
+											+ itemId + " = ItemID");
 
-			String xmlString = ""; // build XML as string to return
-			if(rs.next()) // should only be 1 itme with a given ID--don't loop
+			// build XML as strings to return
+			String xmlItems1 = ""; // Items - before <Category>, incl. opening parent tag
+			String xmlCats = ""; // for categories (foreign key)
+			String xmlItems2 = ""; // Items - between Category and Bids elements
+			String xmlBids = ""; // Bids, between xmlItems2 and user/seller info
+			String xmlUser = ""; // Users (seller info)
+			String xmlItems3 = ""; // Items - Description (after user info), incl. closing parent tag </Item>
+			if(rsItems.next()) // should only be 1 it with a given ID--don't loop
 			{
-				xmlString += "<Item>";
-				xmlString += "\n\t<Name>" + rs.getString("Name") + "</Name>\n";
-				xmlString += "</Item>";
+				xmlItems1 += "<Item>";
+				xmlItems1 += "\n\t<Name>" + rsItems.getString("Name") + "</Name>";
+				xmlItems2 += "\n\t<Currently>" + rsItems.getDouble("Currently") + 
+							"</Currently>";
+				
+				// Bid* - so could have none. If so, skip the parent Bid tag.
+				xmlItems3 += "\n\t<Description>" + rsItems.getString("Description") 
+						+ "</Description>\n</Item>";
+
+				// Categories table cross-lookup
+				ResultSet rsCats = stmt.executeQuery("SELECT Category FROM Categories "
+						+ "INNER JOIN Items ON Categories.ItemID = Items.ItemID AND "
+						+ "Categories.ItemID = " + itemId);
+				/*
+				ResultSet rsCats = stmt.executeQuery("SELECT Category, COUNT(Category)"
+						+ " FROM Categories INNER JOIN Items ON Categories.ItemID = "
+						+ "Items.ItemID AND Categories.ItemID = " + itemId
+						+ " GROUP BY Categories.Category);
+						*/
+				while(rsCats.next())
+				{
+					// TODO why is this only giving me one category result? 
+					// the SQL query is formed fine
+					xmlCats = "\n\t<Category>" + rsCats.getString(1) + 
+						"</Category>";
+				}
+				rsCats.close();
+
 			}
 			else // no match
 			{
@@ -304,9 +335,13 @@ public class AuctionSearch implements IAuctionSearch {
 				return null;
 			}
 
-			conn.close();
+			rsItems.close();
 			stmt.close();
-			rs.close();
+			conn.close();
+
+			// will be empty if something other than item ID mismatch went wrong
+			String xmlString = xmlItems1 + xmlCats + xmlItems2 + xmlBids + 
+								xmlUser + xmlItems3;
 			return xmlString;
 		} catch(Exception e) {
 			e.printStackTrace();
