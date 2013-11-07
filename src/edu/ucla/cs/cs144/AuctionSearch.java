@@ -287,8 +287,8 @@ public class AuctionSearch implements IAuctionSearch {
 		try {
 
 			Connection conn = DbManager.getConnection(true);
-			Statement stmt = conn.createStatement();
-			ResultSet rsItems = stmt.executeQuery("SELECT * FROM Items WHERE " 
+			Statement stmt1 = conn.createStatement();
+			ResultSet rsItems = stmt1.executeQuery("SELECT * FROM Items WHERE " 
 											+ itemId + " = ItemID");
 
 			// build XML as strings to return
@@ -302,10 +302,96 @@ public class AuctionSearch implements IAuctionSearch {
 			{
 				xmlItems1 += "<Item>";
 				xmlItems1 += "\n\t<Name>" + rsItems.getString("Name") + "</Name>";
+				
+				// Categories table cross-lookup
+				Statement stmt2 = conn.createStatement();
+				ResultSet rsCats = stmt2.executeQuery("SELECT Category FROM Categories "
+						+ "INNER JOIN Items ON Categories.ItemID = Items.ItemID AND "
+						+ "Categories.ItemID = " + itemId);
+				while(rsCats.next())
+				{
+					xmlCats += "\n\t<Category>" + rsCats.getString("Category") + 
+						"</Category>";
+				}
+				rsCats.close();
+				stmt2.close();
+
 				xmlItems2 += "\n\t<Currently>" + rsItems.getDouble("Currently") + 
 							"</Currently>";
+				xmlItems2 += "\n\t<First_Bid>" + rsItems.getDouble("First_Bid") + 
+							"</First_Bid>";
+				xmlItems2 += "\n\t<Number_of_Bids>" + 
+					rsItems.getDouble("Number_of_Bids") + "</Number_of_Bids>";
 				
 				// Bid* - so could have none. If so, skip the parent Bid tag.
+				Statement stmt3 = conn.createStatement(); // bid info
+				ResultSet rsBids = stmt3.executeQuery("SELECT UserID, BidTime, "
+						+ "Amount FROM Bids INNER JOIN Items ON "
+						+ "Bids.ItemID = Items.ItemID AND Bids.ItemID = " 
+						+ itemId);
+				if(rsBids != null)
+				{
+					xmlBids += "\n\t<Bids>";
+
+					// Bidding user info look-up
+					// Could also collect these all into an array, and then
+					// use string formatting for final xmlBids string, if you
+					// didn't want to do this as a loop inside of a loop
+					ArrayList<String> biddersList = new ArrayList<String>();
+					Statement stmt4 = conn.createStatement(); // bidders
+					ResultSet rsBidders = stmt4.executeQuery(
+							"SELECT * FROM Users INNER JOIN Bids ON " +
+							"Users.UserID = Bids.UserID AND Bids.ItemID = " 
+							+ itemId);
+					// Location can be optional, Country cannot
+					while(rsBidders.next())
+					{
+						String thisBidder = "";
+						thisBidder += "\n\t\t\t<Bidder UserID=\"" +
+							rsBidders.getString("UserID") + 
+							"\" Rating=\"" + rsBidders.getInt("Rating") +
+							"\">";
+						String loc = rsBidders.getString("Location");
+						if((loc != null) && !(loc.isEmpty()))
+						{
+							thisBidder += "\n\t\t\t\t<Location>" + 
+								loc + "</Location>";
+						}
+						thisBidder += "\n\t\t\t\t<Country>" + 
+							rsBidders.getString("Country") + "</Country>";
+						thisBidder += "\n\t\t\t</Bidder>";
+
+						biddersList.add(thisBidder);
+					}
+					rsBidders.close();
+					stmt4.close();
+
+					// <Bid>
+					int bidsCtr = 0;
+					while(rsBids.next())
+					{
+						xmlBids += "\n\t\t<Bid>";
+
+						xmlBids += biddersList.get(bidsCtr);
+
+						xmlBids += "\n\t\t\t<Time>" + 
+							rsBids.getTimestamp("BidTime") + "</Time>";
+						xmlBids += "\n\t\t\t<Amount>" + 
+							rsBids.getDouble("Amount") + "</Amount>";
+
+						xmlBids += "\n\t\t</Bid>";
+
+						bidsCtr++;
+					} // </Bid>
+
+					xmlBids += "\n\t</Bids>";
+				}
+				rsBids.close();
+				stmt3.close();
+
+				rsCats.close();
+				stmt2.close();
+
 				xmlItems3 += "\n\t<Description>" + rsItems.getString("Description") 
 						+ "</Description>\n</Item>";
 
@@ -318,27 +404,7 @@ public class AuctionSearch implements IAuctionSearch {
 			}
 
 			rsItems.close();
-			stmt.close();
-
-			// Categories table cross-lookup
-			Statement stmt2 = conn.createStatement();
-			ResultSet rsCats = stmt2.executeQuery("SELECT Category FROM Categories "
-					+ "INNER JOIN Items ON Categories.ItemID = Items.ItemID AND "
-					+ "Categories.ItemID = " + itemId);
-			/*
-			ResultSet rsCats = stmt.executeQuery("SELECT Category, COUNT(Category)"
-					+ " FROM Categories INNER JOIN Items ON Categories.ItemID = "
-					+ "Items.ItemID AND Categories.ItemID = " + itemId
-					+ " GROUP BY Categories.Category);
-					*/
-			while(rsCats.next())
-			{
-				xmlCats += "\n\t<Category>" + rsCats.getString("Category") + 
-					"</Category>";
-			}
-			rsCats.close();
-			stmt2.close();
-
+			stmt1.close();
 			conn.close();
 
 			// will be empty if something other than item ID mismatch went wrong
