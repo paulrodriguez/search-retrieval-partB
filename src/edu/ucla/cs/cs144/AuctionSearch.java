@@ -145,28 +145,6 @@ public class AuctionSearch implements IAuctionSearch {
 		String lucene_query = ""; //query for lucene index
 		String mysql_query = ""; //query for mysql 
 		String bidder_value = ""; //hold bidder value
-<<<<<<< HEAD
-		ArrayList<SearchResult> mysql_results= new ArrayList<SearchResult>();
-		String itemid = "";
-		String name = "";
-
-		for (int i = 0; i < constraints.length; i++) {
-			System.out.println("field name: " +constraints[i].getFieldName());
-
-			//create lucene query 
-			if (constraints[i].getFieldName().equals(FieldName.ItemName) 
-					|| constraints[i].getFieldName().equals(FieldName.Category)
-					|| constraints[i].getFieldName().equals(FieldName.Description)) {
-				if(lucene_query.equals("")) {
-					lucene_query = encodeFieldName(constraints[i].getFieldName()) + 
-						":\"" + constraints[i].getValue() + "\"";
-				}
-				else {
-					lucene_query += " AND " + 
-						encodeFieldName(constraints[i].getFieldName()) + ":\"" + 
-						constraints[i].getValue() + "\"";
-=======
-		
 		String fName = ""; //stores the field name converted to MYSQL attribute name
 		String value = ""; //stores value if it needs time format conversion
 		
@@ -184,33 +162,32 @@ public class AuctionSearch implements IAuctionSearch {
 			//System.out.println("field name: " + constraints[i].getFieldName());
 			
 			//create lucene query if there is a constraint on item name, category or description
-			if (constraints[i].getFieldName().equals(FieldName.ItemName) || constraints[i].getFieldName().equals(FieldName.Category) || constraints[i].getFieldName().equals(FieldName.Description))
+			if (constraints[i].getFieldName().equals(FieldName.ItemName) 
+					|| constraints[i].getFieldName().equals(FieldName.Category) 
+					|| constraints[i].getFieldName().equals(FieldName.Description))
 			{
 				//create a lucene search in lucene indexes
 				if(lucene_query.equals(""))
 				{
-					lucene_query = encodeFieldName(constraints[i].getFieldName()) + ":\"" + constraints[i].getValue() + "\"";
+					lucene_query = encodeFieldName(constraints[i].getFieldName()) 
+						+ ":\"" + constraints[i].getValue() + "\"";
 				}
 				else
 				{
-					lucene_query += " AND " + encodeFieldName(constraints[i].getFieldName()) + ":\"" + constraints[i].getValue() + "\"";
->>>>>>> ca977cf0cb719ff9dbf857cadac7bd2e6bb6cdcf
+					lucene_query += " AND " 
+						+ encodeFieldName(constraints[i].getFieldName()) 
+						+ ":\"" + constraints[i].getValue() + "\"";
 				}
 				
 			}
-<<<<<<< HEAD
-			//build query for sql
-			else if(constraints[i].getFieldName().equals(FieldName.SellerId) 
-					|| constraints[i].getFieldName().equals(FieldName.BuyPrice) 
-					|| constraints[i].getFieldName().equals(FieldName.BidderId) 
-					|| constraints[i].getFieldName().equals(FieldName.EndTime)) {
-=======
 			/*
 			build query for sql if there is a constraint on seller, bidder, buy price, or ending time
 			*/
-			else if(constraints[i].getFieldName().equals(FieldName.SellerId) || constraints[i].getFieldName().equals(FieldName.BuyPrice) || constraints[i].getFieldName().equals(FieldName.BidderId) || constraints[i].getFieldName().equals(FieldName.EndTime))
+			else if(constraints[i].getFieldName().equals(FieldName.SellerId) 
+					|| constraints[i].getFieldName().equals(FieldName.BuyPrice) 
+					|| constraints[i].getFieldName().equals(FieldName.BidderId) 
+					|| constraints[i].getFieldName().equals(FieldName.EndTime)) 
 			{
->>>>>>> ca977cf0cb719ff9dbf857cadac7bd2e6bb6cdcf
 				//store the value of bidder id
 				if(constraints[i].getFieldName().equals(FieldName.BidderId)) {
 					bidder_value = constraints[i].getValue();
@@ -227,21 +204,10 @@ public class AuctionSearch implements IAuctionSearch {
 					}
 					//create a sql query for the Items table
 					if(mysql_query.equals("")) {
-<<<<<<< HEAD
-						mysql_query = " "+ 
-							encodeFieldName(constraints[i].getFieldName()) + 
-							"=" + constraints[i].getValue();
-					}
-					else {
-						mysql_query += " AND " + 
-							encodeFieldName(constraints[i].getFieldName()) + 
-							"=" + constraints[i].getValue();
-=======
 						mysql_query = " "+ fName + "=\"" + value + "\"";
 					}
 					else {
 						mysql_query += " AND " + fName + "=\"" + value + "\"";
->>>>>>> ca977cf0cb719ff9dbf857cadac7bd2e6bb6cdcf
 					}
 					convertTime = false;
 				}
@@ -249,36 +215,20 @@ public class AuctionSearch implements IAuctionSearch {
 		}
 		
 		System.out.println("mysql Query: " + mysql_query);
-<<<<<<< HEAD
-		
-		try {
-			//create a mysql query if queries were issued for mysql indexes
-			if(!mysql_query.equals("") || !bidder_value.equals("")) {
-				String bidder = "";
-				//creating a query on bidders
-				if(!bidder_value.equals("")) {
-					//if mysql query for items is empty, then just query on bids table
-					if(mysql_query.equals("")) {
-						bidder = "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" 
-							+ bidder_value + "\")";
-					}
-					else {
-						bidder = 
-							" AND ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" 
-							+ bidder_value + "\")";
-=======
 		System.out.println("lucene Query: " + lucene_query);
 		
 		try {
 				if(!lucene_query.equals("")) {
-					IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")+"/ebay-index");
+					IndexSearcher searcher = new IndexSearcher(
+							System.getenv("LUCENE_INDEX") + "/ebay-index");
 					QueryParser parser = new QueryParser("content", new StandardAnalyzer());
 			
 					Query q = parser.parse(lucene_query);        
 					Hits hits = searcher.search(q);
 					for (int i = 0; i < hits.length(); i++) {
 							Document doc = hits.doc(i);
-							results.add(new SearchResult(doc.get("ItemID"), doc.get("Name")));
+							results.add(new SearchResult(doc.get("ItemID"), 
+										doc.get("Name")));
 					}
 				}
 				//create a mysql query if queries where issued for mysql indexes
@@ -291,7 +241,8 @@ public class AuctionSearch implements IAuctionSearch {
 						//if mysql query for items is empty, then just query on bids table
 						if(mysql_query.equals(""))
 						{
-							bidder = "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" + bidder_value + "\")";
+							bidder = "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\""
+								+ bidder_value + "\")";
 						}
 						else
 						{
@@ -301,7 +252,9 @@ public class AuctionSearch implements IAuctionSearch {
 					
 					Connection conn = DbManager.getConnection(true);
 					Statement stmt = conn.createStatement();
-					ResultSet rs = stmt.executeQuery("SELECT ItemID, Name FROM Items WHERE " + mysql_query+bidder);
+					ResultSet rs = stmt.executeQuery(
+							"SELECT ItemID, Name FROM Items WHERE " + mysql_query 
+							+ bidder);
 					while(rs.next())
 					{
 						itemid = rs.getString("ItemID");
@@ -312,38 +265,16 @@ public class AuctionSearch implements IAuctionSearch {
 						{
 							results.add(tuple);
 						}
->>>>>>> ca977cf0cb719ff9dbf857cadac7bd2e6bb6cdcf
 					}
 					//close connections
 					conn.close();
 					stmt.close();
 					rs.close();
 				}
-<<<<<<< HEAD
-				Connection conn = DbManager.getConnection(true);
-				Statement stmt = conn.createStatement();
-				ResultSet rs = stmt.executeQuery(
-						"SELECT ItemID, Name FROM Items WHERE " + mysql_query 
-						+ bidder);
-				while(rs.next()) {
-					itemid = rs.getString("ItemID");
-					name = rs.getString("Name");
-					mysql_results.add(new SearchResult(itemid, name));
-				}
-				conn.close();
-				stmt.close();
-				rs.close();
+			fResults = new SearchResult[results.size()];
+			for (int i = 0; i < results.size(); i++) {
+				fResults[i] = results.get(i);
 			}
-			fResults = new SearchResult[mysql_results.size()];
-			for (int i = 0; i < mysql_results.size(); i++) {
-				fResults[i] = mysql_results.get(i);
-			}
-=======
-				fResults = new SearchResult[results.size()];
-				for (int i = 0; i < results.size(); i++) {
-					fResults[i] = results.get(i);
-				}
->>>>>>> ca977cf0cb719ff9dbf857cadac7bd2e6bb6cdcf
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -353,29 +284,34 @@ public class AuctionSearch implements IAuctionSearch {
 
 	public String getXMLDataForItemId(String itemId) {
 		// TODO: Your code here!
-		/*
-		// Search for item ID, check if valid
-		AuctionSearch as = new AuctionSearch();
-		// should only have one item with a certain ID number--set max 1
-		SearchResult[] basicResults = as.basicSearch(query, 0, 1);
+		try {
 
-		if((xmlData != null) && !(xmlData.isEmpty()))
-		{
-		}
-		*/
-		IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX") 
-				+ "/ebay-index");
-		QueryParser parser = new QueryParser("content", new StandardAnalyzer());
-		Query q = parser.parse(itemId);        
-		Hits hits = searcher.search(q);
-		// default null if no matching Item for ID
-		if(hits.length() < 1)
-		{
+			Connection conn = DbManager.getConnection(true);
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery("SELECT * FROM Items WHERE " 
+											+ itemId + " = ItemID;");
+
+			String xmlString = ""; // build XML as string to return
+			if(rs.next()) // should only be 1 itme with a given ID--don't loop
+			{
+				xmlString += "<Item>";
+				xmlString += "\n\t<Name>" + rs.getString("Name") + "</Name>\n";
+				xmlString += "</Item>";
+			}
+			else // no match
+			{
+				// null if no matching Item for ID
+				return null;
+			}
+
+			conn.close();
+			stmt.close();
+			rs.close();
+			return xmlString;
+		} catch(Exception e) {
+			e.printStackTrace();
 			return null;
 		}
-
-		// default return value - if any issues
-		return null;
 	}
 	
 	public String echo(String message) {
