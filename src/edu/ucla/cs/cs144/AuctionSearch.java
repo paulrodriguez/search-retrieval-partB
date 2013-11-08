@@ -52,10 +52,9 @@ public class AuctionSearch implements IAuctionSearch {
 		// TODO: Your code here!
 		SearchResult[] results = new SearchResult[0];
 		ArrayList<SearchResult> r = new ArrayList<SearchResult>(); 
-
 		try {
-			IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX") 
-					+ "/ebay-index");
+			
+			IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")+"/ebay-index");
 			QueryParser parser = new QueryParser("content", new StandardAnalyzer());
 			
 			Query q = parser.parse(query);        
@@ -65,7 +64,6 @@ public class AuctionSearch implements IAuctionSearch {
 			//Iterator<Hit> iter = hits.iterator();
 			int skipped = 0; //keeps track of how many we have skipped
 			int added = 0; //keeps track of how many we have returned/added
-
 			//iterate through the results received from lucene
 			for (int i = 0; i < hits.length(); i++) {
 				if(skipped > numResultsToSkip-1) {
@@ -84,7 +82,6 @@ public class AuctionSearch implements IAuctionSearch {
 				results[i] = r.get(i);
 			}
 		}
-
 		catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -141,16 +138,16 @@ public class AuctionSearch implements IAuctionSearch {
 	public SearchResult[] advancedSearch(SearchConstraint[] constraints, 
 			int numResultsToSkip, int numResultsToReturn) {
 		// TODO: Your code here!
-		SearchResult[] fResults = new SearchResult[0];
+		SearchResult[] results = new SearchResult[0];
 		
 		String lucene_query = ""; //query for lucene index
 		String mysql_query = ""; //query for mysql 
-		String bidder_value = ""; //hold bidder value
+		
 		String fName = ""; //stores the field name converted to MYSQL attribute name
 		String value = ""; //stores value if it needs time format conversion
 		
-		ArrayList<SearchResult> results= new ArrayList<SearchResult>();
-		
+		ArrayList<SearchResult> combine_results= new ArrayList<SearchResult>();
+		ArrayList<SearchResult> lucene_results = new ArrayList<SearchResult>();
 		String itemid = "";//stores item id when accessing mysql query
 		String name = "";//stores name when accessing mysql query
 		
@@ -158,60 +155,50 @@ public class AuctionSearch implements IAuctionSearch {
 		//loop over the constraints and create mysql and lucene queries depending on the constraints. this should ignore constraints that do not exist
 		for (int i = 0; i < constraints.length; i++)
 		{
-		
-			//test to output field name
-			//System.out.println("field name: " + constraints[i].getFieldName());
 			
 			//create lucene query if there is a constraint on item name, category or description
-			if (constraints[i].getFieldName().equals(FieldName.ItemName) 
-					|| constraints[i].getFieldName().equals(FieldName.Category) 
-					|| constraints[i].getFieldName().equals(FieldName.Description))
+			if (constraints[i].getFieldName().equals(FieldName.ItemName) || constraints[i].getFieldName().equals(FieldName.Category) || constraints[i].getFieldName().equals(FieldName.Description))
 			{
+				if(constraints[i].getValue().equals("") && constraints.length>1) continue;
 				//create a lucene search in lucene indexes
-				if(lucene_query.equals(""))
-				{
-					lucene_query = encodeFieldName(constraints[i].getFieldName()) 
-						+ ":\"" + constraints[i].getValue() + "\"";
-				}
-				else
-				{
-					lucene_query += " AND " 
-						+ encodeFieldName(constraints[i].getFieldName()) 
-						+ ":\"" + constraints[i].getValue() + "\"";
-				}
+				if(!lucene_query.equals("")) lucene_query += " AND ";
+				
+				lucene_query += encodeFieldName(constraints[i].getFieldName()) + ":\"" + constraints[i].getValue() + "\"";
 				
 			}
 			/*
 			build query for sql if there is a constraint on seller, bidder, buy price, or ending time
 			*/
-			else if(constraints[i].getFieldName().equals(FieldName.SellerId) 
-					|| constraints[i].getFieldName().equals(FieldName.BuyPrice) 
-					|| constraints[i].getFieldName().equals(FieldName.BidderId) 
-					|| constraints[i].getFieldName().equals(FieldName.EndTime)) 
+			else if(constraints[i].getFieldName().equals(FieldName.SellerId) || constraints[i].getFieldName().equals(FieldName.BuyPrice) || constraints[i].getFieldName().equals(FieldName.BidderId) || constraints[i].getFieldName().equals(FieldName.EndTime))
 			{
 				//store the value of bidder id
 				if(constraints[i].getFieldName().equals(FieldName.BidderId)) {
-					bidder_value = constraints[i].getValue();
+					if(!mysql_query.equals("")) mysql_query += " AND ";
+					mysql_query += "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" + constraints[i].getValue() + "\")";
 				}
 				else {
+				
+					fName = encodeFieldName(constraints[i].getFieldName());
+					
 					if(constraints[i].getFieldName().equals(FieldName.EndTime)) {
 						convertTime = true;
 					}
-					fName = encodeFieldName(constraints[i].getFieldName());
+					
 					try {
 						value = encodeValue(constraints[i].getValue(), convertTime);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
 					//create a sql query for the Items table
-					if(mysql_query.equals("")) {
-						mysql_query = " "+ fName + "=\"" + value + "\"";
+					if(!mysql_query.equals("")) {
+						mysql_query = " AND ";
 					}
-					else {
-						mysql_query += " AND " + fName + "=\"" + value + "\"";
-					}
+				
+					mysql_query += fName + "=\"" + value + "\"";
+				
 					convertTime = false;
 				}
+				
 			}
 		}
 		
@@ -220,67 +207,62 @@ public class AuctionSearch implements IAuctionSearch {
 		
 		try {
 				if(!lucene_query.equals("")) {
-					IndexSearcher searcher = new IndexSearcher(
-							System.getenv("LUCENE_INDEX") + "/ebay-index");
+					IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")+"/ebay-index");
 					QueryParser parser = new QueryParser("content", new StandardAnalyzer());
 			
 					Query q = parser.parse(lucene_query);        
 					Hits hits = searcher.search(q);
 					for (int i = 0; i < hits.length(); i++) {
 							Document doc = hits.doc(i);
-							results.add(new SearchResult(doc.get("ItemID"), 
-										doc.get("Name")));
+							lucene_results.add(new SearchResult(doc.get("ItemID"), doc.get("Name")));
 					}
+					//return no results
+					if(lucene_results.size()==0) return results;
 				}
 				//create a mysql query if queries where issued for mysql indexes
-				if(!mysql_query.equals("") || !bidder_value.equals(""))
+				if(!mysql_query.equals(""))
 				{
-					String bidder = "";
-					//creating a query on bidders
-					if(!bidder_value.equals(""))
-					{
-						//if mysql query for items is empty, then just query on bids table
-						if(mysql_query.equals(""))
-						{
-							bidder = "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\""
-								+ bidder_value + "\")";
-						}
-						else
-						{
-							bidder = " AND ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" + bidder_value + "\")";
-						}
-					}
-					
 					Connection conn = DbManager.getConnection(true);
 					Statement stmt = conn.createStatement();
-					ResultSet rs = stmt.executeQuery(
-							"SELECT ItemID, Name FROM Items WHERE " + mysql_query 
-							+ bidder);
+					ResultSet rs = stmt.executeQuery("SELECT ItemID, Name FROM Items WHERE " + mysql_query);
 					while(rs.next())
 					{
 						itemid = rs.getString("ItemID");
 						name = rs.getString("Name");
 						SearchResult tuple = new SearchResult(itemid, name);
 						//only add the new tuple if its not already in our list
-						if (!isInResults(results, tuple)) 
+						if ((lucene_results.size()==0 || !isInResults(lucene_results, tuple))&&!isInResults(combine_results,tuple)) 
 						{
-							results.add(tuple);
+							combine_results.add(tuple);
 						}
 					}
 					//close connections
 					conn.close();
 					stmt.close();
 					rs.close();
+				} 
+				else {
+					combine_results=lucene_results;
 				}
-			fResults = new SearchResult[results.size()];
-			for (int i = 0; i < results.size(); i++) {
-				fResults[i] = results.get(i);
-			}
+				if(numResultsToSkip >= combine_results.size()) return results;
+				ArrayList<SearchResult> temp = new ArrayList<SearchResult>();
+				
+				int added = 0;
+				for (int i = numResultsToSkip; i < combine_results.size(); i++) {
+					
+						temp.add(combine_results.get(i));
+						added++;
+						if(added >= numResultsToReturn) break;
+				}
+				results = new SearchResult[temp.size()];
+				for (int i=0; i < temp.size();i++) {
+					results[i] = temp.get(i);
+				}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		return fResults;
+		return results;
 	}
 
 	public String getXMLDataForItemId(String itemId) {
@@ -422,6 +404,7 @@ public class AuctionSearch implements IAuctionSearch {
 			e.printStackTrace();
 			return null;
 		}
+		return null;
 	}
 	
 	public String echo(String message) {

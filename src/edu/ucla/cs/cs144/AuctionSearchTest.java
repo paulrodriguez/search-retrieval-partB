@@ -69,54 +69,5 @@ public class AuctionSearchTest {
 		}
 		
 		
-		System.out.println("======================================================\n");
-		//c1 = new SearchConstraint(FieldName.ItemName, "Precious Moments");
-		c2 = new SearchConstraint(FieldName.SellerId, "waltera317a");
-		constraints = new SearchConstraint[1];
-		constraints[0] = 	c2;
-		//constraints[1] = c2;
-		basicResults = as.advancedSearch(constraints, 0, 0);
-		
-		System.out.println("advanced search: ItemName='Precious Moments', SellerId='waltera317a''");
-		System.out.println("Received " + basicResults.length + " results");
-		for(SearchResult result : basicResults) {
-			System.out.println(result.getItemId() + ": " + result.getName());
-			
-		}
-		
-		System.out.println("======================================================\n");
-		constraints = new SearchConstraint[1];
-		constraints[0] = 	new SearchConstraint(FieldName.EndTime, "Dec-14-01 21:00:05");
-		//constraints[1] = new SearchConstraint(FieldName.ItemName,"batman");
-		basicResults = as.advancedSearch(constraints, 0, 0);
-		System.out.println("advanced search: EndTime=Dec-14-01 21:00:05");
-		System.out.println("Received " + basicResults.length + " results");
-		for(SearchResult result : basicResults) {
-			System.out.println(result.getItemId() + ": " + result.getName());
-			
-		}
-		
-		System.out.println("======================================================\n");
-		constraints = new SearchConstraint[2];
-		constraints[0] = 	new SearchConstraint(FieldName.ItemName, "superman");
-		constraints[1] = new SearchConstraint(FieldName.ItemName,"batman");
-		basicResults = as.advancedSearch(constraints, 0, 0);
-		//System.out.println("advanced search: ItemName='pan', Category='kitchenware'");
-		System.out.println("Received " + basicResults.length + " results");
-		for(SearchResult result : basicResults) {
-			System.out.println(result.getItemId() + ": " + result.getName());
-			
-		}
-		System.out.println("======================================================\n");
-		constraints = new SearchConstraint[1];
-		constraints[0] = 	new SearchConstraint(FieldName.BidderId, "clothingbroker");
-		//constraints[1] = new SearchConstraint(FieldName.ItemName,"batman");
-		basicResults = as.advancedSearch(constraints, 0, 0);
-		System.out.println("advanced search: ItemName='pan', Category='kitchenware'");
-		System.out.println("Received " + basicResults.length + " results");
-		for(SearchResult result : basicResults) {
-			System.out.println(result.getItemId() + ": " + result.getName());
-			
-		}
 	}
 }
