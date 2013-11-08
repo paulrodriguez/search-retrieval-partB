@@ -54,7 +54,7 @@ public class AuctionSearchTest {
 		System.out.println(item3);
 
 		// Add your own test here
-		System.out.println("======================================================\n");
+		System.out.println("\n===============================================================\n");
 		SearchConstraint c1 = new SearchConstraint(FieldName.ItemName, "pan");
 		SearchConstraint c2 = new SearchConstraint(FieldName.Category,"kitchenware");
 		constraints = new SearchConstraint[2];
@@ -68,7 +68,7 @@ public class AuctionSearchTest {
 			
 		}
 		
-		System.out.println("======================================================\n");
+		System.out.println("\n===============================================================\n");
 		c1 = new SearchConstraint(FieldName.ItemName, "Precious Moments");
 		c2 = new SearchConstraint(FieldName.SellerId, "waltera317a");
 		constraints = new SearchConstraint[2];
@@ -82,6 +82,7 @@ public class AuctionSearchTest {
 			
 		}
 		
+		System.out.println("\n===============================================================\n");
 		c1 = new SearchConstraint(FieldName.EndTime, "Dec-14-01 21:00:05");
 		constraints = new SearchConstraint[1];
 		constraints[0] = 	c1;
