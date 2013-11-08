@@ -219,7 +219,7 @@ public class AuctionSearch implements IAuctionSearch {
 					//return no results
 					if(lucene_results.size()==0) return results;
 				}
-				//create a mysql query if queries where issued for mysql indexes
+				//create a mysql query if queries were issued for mysql indexes
 				if(!mysql_query.equals(""))
 				{
 					Connection conn = DbManager.getConnection(true);
@@ -284,7 +284,9 @@ public class AuctionSearch implements IAuctionSearch {
 			if(rsItems.next()) // should only be 1 it with a given ID--don't loop
 			{
 				xmlItems1 += "<Item>";
-				xmlItems1 += "\n\t<Name>" + rsItems.getString("Name") + "</Name>";
+				xmlItems1 += "\n\t<Name>" + 
+					StringEscapeUtils.escapeXml(rsItems.getString("Name")) + 
+					"</Name>";
 				
 				// Categories table cross-lookup
 				Statement stmt2 = conn.createStatement();
@@ -293,7 +295,8 @@ public class AuctionSearch implements IAuctionSearch {
 						+ "Categories.ItemID = " + itemId);
 				while(rsCats.next())
 				{
-					xmlCats += "\n\t<Category>" + rsCats.getString("Category") + 
+					xmlCats += "\n\t<Category>" + 
+						StringEscapeUtils.escapeXml(rsCats.getString("Category")) + 
 						"</Category>";
 				}
 				rsCats.close();
@@ -331,19 +334,21 @@ public class AuctionSearch implements IAuctionSearch {
 					{
 						String thisBidder = "";
 						thisBidder += "\n\t\t\t<Bidder UserID=\"" +
-							rsBidders.getString("UserID") + 
+							StringEscapeUtils.escapeXml(rsBidders.getString("UserID")) + 
 							"\" Rating=\"" + rsBidders.getInt("Rating") +
 							"\">";
 						String loc = rsBidders.getString("Location");
 						if((loc != null) && !(loc.isEmpty()))
 						{
 							thisBidder += "\n\t\t\t\t<Location>" + 
-								loc + "</Location>";
+								StringEscapeUtils.escapeXml(loc) + "</Location>";
 						}
 						String ctry = rsBidders.getString("Country");
 						if((ctry != null) && !(ctry.isEmpty()))
-						thisBidder += "\n\t\t\t\t<Country>" + 
-							ctry + "</Country>";
+						{
+							thisBidder += "\n\t\t\t\t<Country>" + 
+								StringEscapeUtils.escapeXml(ctry) + "</Country>";
+						}
 						thisBidder += "\n\t\t\t</Bidder>";
 
 						biddersList.add(thisBidder);
@@ -381,7 +386,8 @@ public class AuctionSearch implements IAuctionSearch {
 				rsCats.close();
 				stmt2.close();
 
-				xmlItems3 += "\n\t<Description>" + rsItems.getString("Description") 
+				xmlItems3 += "\n\t<Description>" + 
+					StringEscapeUtils.escapeXml(rsItems.getString("Description"))
 						+ "</Description>\n</Item>";
 
 
@@ -404,7 +410,6 @@ public class AuctionSearch implements IAuctionSearch {
 			e.printStackTrace();
 			return null;
 		}
-		return null;
 	}
 	
 	public String echo(String message) {
