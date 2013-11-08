@@ -54,7 +54,8 @@ public class AuctionSearch implements IAuctionSearch {
 		ArrayList<SearchResult> r = new ArrayList<SearchResult>(); 
 		try {
 			
-			IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")+"/ebay-index");
+			IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")
+					+ "/ebay-index");
 			QueryParser parser = new QueryParser("content", new StandardAnalyzer());
 			
 			Query q = parser.parse(query);        
@@ -157,24 +158,32 @@ public class AuctionSearch implements IAuctionSearch {
 		{
 			
 			//create lucene query if there is a constraint on item name, category or description
-			if (constraints[i].getFieldName().equals(FieldName.ItemName) || constraints[i].getFieldName().equals(FieldName.Category) || constraints[i].getFieldName().equals(FieldName.Description))
+			if(constraints[i].getFieldName().equals(FieldName.ItemName)
+					|| constraints[i].getFieldName().equals(FieldName.Category) 
+					|| constraints[i].getFieldName().equals(FieldName.Description))
 			{
-				if(constraints[i].getValue().equals("") && constraints.length>1) continue;
+				if(constraints[i].getValue().equals("") && constraints.length>1) 
+					continue;
 				//create a lucene search in lucene indexes
 				if(!lucene_query.equals("")) lucene_query += " AND ";
 				
-				lucene_query += encodeFieldName(constraints[i].getFieldName()) + ":\"" + constraints[i].getValue() + "\"";
+				lucene_query += encodeFieldName(constraints[i].getFieldName()) 
+					+ ":\"" + constraints[i].getValue() + "\"";
 				
 			}
 			/*
 			build query for sql if there is a constraint on seller, bidder, buy price, or ending time
 			*/
-			else if(constraints[i].getFieldName().equals(FieldName.SellerId) || constraints[i].getFieldName().equals(FieldName.BuyPrice) || constraints[i].getFieldName().equals(FieldName.BidderId) || constraints[i].getFieldName().equals(FieldName.EndTime))
+			else if(constraints[i].getFieldName().equals(FieldName.SellerId) 
+					|| constraints[i].getFieldName().equals(FieldName.BuyPrice) 
+					|| constraints[i].getFieldName().equals(FieldName.BidderId) 
+					|| constraints[i].getFieldName().equals(FieldName.EndTime))
 			{
 				//store the value of bidder id
 				if(constraints[i].getFieldName().equals(FieldName.BidderId)) {
 					if(!mysql_query.equals("")) mysql_query += " AND ";
-					mysql_query += "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" + constraints[i].getValue() + "\")";
+					mysql_query += "ItemID IN (SELECT ItemID FROM Bids WHERE UserID=\"" 
+						+ constraints[i].getValue() + "\")";
 				}
 				else {
 				
@@ -207,14 +216,16 @@ public class AuctionSearch implements IAuctionSearch {
 		
 		try {
 				if(!lucene_query.equals("")) {
-					IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")+"/ebay-index");
+					IndexSearcher searcher = new IndexSearcher(
+							System.getenv("LUCENE_INDEX") + "/ebay-index");
 					QueryParser parser = new QueryParser("content", new StandardAnalyzer());
 			
 					Query q = parser.parse(lucene_query);        
 					Hits hits = searcher.search(q);
 					for (int i = 0; i < hits.length(); i++) {
 							Document doc = hits.doc(i);
-							lucene_results.add(new SearchResult(doc.get("ItemID"), doc.get("Name")));
+							lucene_results.add(new SearchResult(doc.get("ItemID"), 
+										doc.get("Name")));
 					}
 					//return no results
 					if(lucene_results.size()==0) return results;
@@ -224,14 +235,17 @@ public class AuctionSearch implements IAuctionSearch {
 				{
 					Connection conn = DbManager.getConnection(true);
 					Statement stmt = conn.createStatement();
-					ResultSet rs = stmt.executeQuery("SELECT ItemID, Name FROM Items WHERE " + mysql_query);
+					ResultSet rs = stmt.executeQuery(
+							"SELECT ItemID, Name FROM Items WHERE " + mysql_query);
 					while(rs.next())
 					{
 						itemid = rs.getString("ItemID");
 						name = rs.getString("Name");
 						SearchResult tuple = new SearchResult(itemid, name);
 						//only add the new tuple if its not already in our list
-						if ((lucene_results.size()==0 || !isInResults(lucene_results, tuple))&&!isInResults(combine_results,tuple)) 
+						if ((lucene_results.size()==0 
+									|| !isInResults(lucene_results, tuple))
+								&& !isInResults(combine_results,tuple)) 
 						{
 							combine_results.add(tuple);
 						}
@@ -249,7 +263,6 @@ public class AuctionSearch implements IAuctionSearch {
 				
 				int added = 0;
 				for (int i = numResultsToSkip; i < combine_results.size(); i++) {
-					
 						temp.add(combine_results.get(i));
 						added++;
 						if(added >= numResultsToReturn) break;
@@ -279,8 +292,10 @@ public class AuctionSearch implements IAuctionSearch {
 			String xmlCats = ""; // for categories (foreign key)
 			String xmlItems2 = ""; // Items - between Category and Bids elements
 			String xmlBids = ""; // Bids, between xmlItems2 and user/seller info
-			String xmlUser = ""; // Users (seller info)
-			String xmlItems3 = ""; // Items - Description (after user info), incl. closing parent tag </Item>
+			String xmlItems3 = ""; // Started, Ends (between seller)
+			String xmlSellerLoc = ""; // seller location from Users table
+			String xmlSellerAtts = ""; // other seller info from Users table
+			String xmlItems4 = ""; // Items - Description (after user info), incl. closing parent tag </Item>
 			if(rsItems.next()) // should only be 1 it with a given ID--don't loop
 			{
 				xmlItems1 += "<Item>";
@@ -302,12 +317,12 @@ public class AuctionSearch implements IAuctionSearch {
 				rsCats.close();
 				stmt2.close();
 
-				xmlItems2 += "\n\t<Currently>" + rsItems.getDouble("Currently") + 
+				xmlItems2 += "\n\t<Currently>$" + rsItems.getBigDecimal("Currently") + 
 							"</Currently>";
-				xmlItems2 += "\n\t<First_Bid>" + rsItems.getDouble("First_Bid") + 
+				xmlItems2 += "\n\t<First_Bid>$" + rsItems.getBigDecimal("First_Bid") + 
 							"</First_Bid>";
 				xmlItems2 += "\n\t<Number_of_Bids>" + 
-					rsItems.getDouble("Number_of_Bids") + "</Number_of_Bids>";
+					rsItems.getInt("Number_of_Bids") + "</Number_of_Bids>";
 				
 				// Bid* - so could have none. If so, skip the parent Bid tag.
 				Statement stmt3 = conn.createStatement(); // bid info
@@ -366,14 +381,14 @@ public class AuctionSearch implements IAuctionSearch {
 
 						xmlBids += "\n\t\t\t<Time>" + 
 							rsBids.getTimestamp("BidTime") + "</Time>";
-						xmlBids += "\n\t\t\t<Amount>" + 
-							rsBids.getDouble("Amount") + "</Amount>";
+						xmlBids += "\n\t\t\t<Amount>$" + 
+							rsBids.getBigDecimal("Amount") + "</Amount>";
 
 						xmlBids += "\n\t\t</Bid>";
 
 						bidsCtr++;
 					} // </Bid>
-
+					
 					xmlBids += "\n\t</Bids>";
 				}
 				else
@@ -383,14 +398,40 @@ public class AuctionSearch implements IAuctionSearch {
 				rsBids.close();
 				stmt3.close();
 
-				rsCats.close();
-				stmt2.close();
+				xmlItems3 += "\n\t<Started>" + rsItems.getTimestamp("Started")
+					+ "</Started>\n\t<Ends>" 
+					+ xmlItems3 + rsItems.getTimestamp("Ends") + "</Ends>";
 
-				xmlItems3 += "\n\t<Description>" + 
+				// Seller info
+				// location info, though not an attribute of Seller in the DTD/XML,
+				// goes beforexmlItems3 - goes into xmlSellerLoc
+				// attributes go into xmlSellerAtts
+				Statement stmt5 = conn.createStatement();
+				// TODO
+				ResultSet rsSeller = stmt5.executeQuery("SELECT * FROM Users "
+						+ "INNER JOIN Items ON Users.UserID = Items.Seller AND "
+						+ "Items.ItemID = " + itemId);
+				if(rsSeller.next()) // only 1 seller
+				{
+					// location, country
+					xmlSellerLoc += "\n\t<Location>" + 
+						StringEscapeUtils.escapeXml(rsSeller.getString("Location")) + 
+						"</Location>\n\t<Country>" + 
+						StringEscapeUtils.escapeXml(rsSeller.getString("Country")) + 
+						"</Country>";
+
+					// ID, rating
+					xmlSellerAtts += "\n\t<Seller UserID=\"" + 
+						StringEscapeUtils.escapeXml(rsSeller.getString("UserID")) + 
+						"\" Rating=\"" + rsSeller.getInt("Rating") + "\"/>";
+				}
+				rsSeller.close();
+				stmt5.close();
+
+
+				xmlItems4 += "\n\t<Description>" + 
 					StringEscapeUtils.escapeXml(rsItems.getString("Description"))
 						+ "</Description>\n</Item>";
-
-
 			}
 			else // no match
 			{
@@ -404,7 +445,7 @@ public class AuctionSearch implements IAuctionSearch {
 
 			// will be empty if something other than item ID mismatch went wrong
 			String xmlString = xmlItems1 + xmlCats + xmlItems2 + xmlBids + 
-								xmlUser + xmlItems3;
+					xmlSellerLoc + xmlItems3 + xmlSellerAtts + xmlItems4;
 			return xmlString;
 		} catch(Exception e) {
 			e.printStackTrace();
