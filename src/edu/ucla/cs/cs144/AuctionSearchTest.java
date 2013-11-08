@@ -43,6 +43,16 @@ public class AuctionSearchTest {
 		System.out.println("XML data for ItemId: " + itemId);
 		System.out.println(item);
 
+		String itemId2 = "1045238762";
+		String item2 = as.getXMLDataForItemId(itemId2);
+		System.out.println("XML data for ItemId: " + itemId2);
+		System.out.println(item2);
+
+		String itemId3 = "1045797007";
+		String item3 = as.getXMLDataForItemId(itemId3);
+		System.out.println("XML data for ItemId: " + itemId3);
+		System.out.println(item3);
+
 		// Add your own test here
 		System.out.println("======================================================\n");
 		SearchConstraint c1 = new SearchConstraint(FieldName.ItemName, "pan");
