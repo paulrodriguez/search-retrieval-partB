@@ -24,6 +24,7 @@ import edu.ucla.cs.cs144.SearchConstraint;
 import edu.ucla.cs.cs144.SearchResult;
 
 import java.util.ArrayList;
+import org.apache.commons.lang.StringEscapeUtils;
 
 public class AuctionSearch implements IAuctionSearch {
 
@@ -343,7 +344,7 @@ public class AuctionSearch implements IAuctionSearch {
 							"SELECT * FROM Users INNER JOIN Bids ON " +
 							"Users.UserID = Bids.UserID AND Bids.ItemID = " 
 							+ itemId);
-					// Location can be optional, Country cannot
+					// Location and Country can be optional
 					while(rsBidders.next())
 					{
 						String thisBidder = "";
@@ -357,8 +358,10 @@ public class AuctionSearch implements IAuctionSearch {
 							thisBidder += "\n\t\t\t\t<Location>" + 
 								loc + "</Location>";
 						}
+						String ctry = rsBidders.getString("Country");
+						if((ctry != null) && !(ctry.isEmpty()))
 						thisBidder += "\n\t\t\t\t<Country>" + 
-							rsBidders.getString("Country") + "</Country>";
+							ctry + "</Country>";
 						thisBidder += "\n\t\t\t</Bidder>";
 
 						biddersList.add(thisBidder);
@@ -385,6 +388,10 @@ public class AuctionSearch implements IAuctionSearch {
 					} // </Bid>
 
 					xmlBids += "\n\t</Bids>";
+				}
+				else
+				{
+					xmlBids = "<Bids/>";
 				}
 				rsBids.close();
 				stmt3.close();
