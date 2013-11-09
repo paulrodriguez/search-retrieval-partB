@@ -52,6 +52,8 @@ public class AuctionSearch implements IAuctionSearch {
 		// TODO: Your code here!
 		SearchResult[] results = new SearchResult[0];
 		ArrayList<SearchResult> r = new ArrayList<SearchResult>(); 
+		//
+		if(numResultsToSkip <0 || numResultsToReturn < 0) return results;
 		try {
 			
 			IndexSearcher searcher = new IndexSearcher(System.getenv("LUCENE_INDEX")
@@ -72,7 +74,7 @@ public class AuctionSearch implements IAuctionSearch {
 					r.add(new SearchResult(doc.get("ItemID"), doc.get("Name")));
 					added++;
 				}
-				if(added == numResultsToReturn) {
+				if(added == numResultsToReturn && numResultsToReturn >0) {
 					break;
 				}
 				skipped++;
@@ -104,7 +106,7 @@ public class AuctionSearch implements IAuctionSearch {
 	/**
 		this will convert any time in a query into MYSQL TImestamp format for query comparison
 	**/
-	private String  MYSQL_Timestamp(String time) throws Exception {
+	private String  mysql_time(String time) throws Exception {
 
 		SimpleDateFormat firstformat = new SimpleDateFormat("MMM-dd-yy HH:mm:ss");
 	
@@ -113,13 +115,23 @@ public class AuctionSearch implements IAuctionSearch {
 		return lastformat.format(parsed);
     }
 	
+	private String  xml_time(String time) throws Exception {
+
+		SimpleDateFormat lastformat = new SimpleDateFormat("MMM-dd-yy HH:mm:ss");
+	SimpleDateFormat firstformat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	
+		Date parsed = (Date)firstformat.parse(time);
+		
+		return lastformat.format(parsed);
+    }
 	/***
 	this is to tell wheter we should convert to timestamp
 	***/
 	private String encodeValue(String val, boolean isTime) throws Exception{
-		if(isTime) 	return MYSQL_Timestamp(val);
+		if(isTime) 	return mysql_time(val);
 		else return val;
 	}
+	
 	
 	/**
 	this will check if an item is already on our list to return for the query
@@ -136,6 +148,24 @@ public class AuctionSearch implements IAuctionSearch {
 		return false;
 	}
 	
+	
+	/****
+	@param String[] constraint: takes in an array for a constraint value that was broken up by space 
+	@return: returns a query for the lucene index
+	***/
+	private String createLuceneOrStatement(String[] constraint) {
+		if (constraint.length ==1 ) return ""+QueryParser.escape(constraint[0])+"";
+		String value = "";
+		for (int i = 0; i < constraint.length; i++) {
+			if(!value.equals(""))
+				value += " OR ";
+			value += QueryParser.escape(constraint[i]);
+		}
+		return "("+value+")";
+	}
+	
+	
+	
 	public SearchResult[] advancedSearch(SearchConstraint[] constraints, 
 			int numResultsToSkip, int numResultsToReturn) {
 		// TODO: Your code here!
@@ -151,8 +181,12 @@ public class AuctionSearch implements IAuctionSearch {
 		ArrayList<SearchResult> lucene_results = new ArrayList<SearchResult>();
 		String itemid = "";//stores item id when accessing mysql query
 		String name = "";//stores name when accessing mysql query
+	
+		String[] constraintValue = new String[0];
 		
 		boolean convertTime = false;
+		
+		if(numResultsToSkip < 0 || numResultsToReturn < 0) return results;
 		//loop over the constraints and create mysql and lucene queries depending on the constraints. this should ignore constraints that do not exist
 		for (int i = 0; i < constraints.length; i++)
 		{
@@ -164,11 +198,14 @@ public class AuctionSearch implements IAuctionSearch {
 			{
 				if(constraints[i].getValue().equals("") && constraints.length>1) 
 					continue;
+					
+				String[] constraintval = constraints[i].getValue().split(" ");
+				String queryValue = createLuceneOrStatement(constraintval);
 				//create a lucene search in lucene indexes
 				if(!lucene_query.equals("")) lucene_query += " AND ";
 				
 				lucene_query += encodeFieldName(constraints[i].getFieldName()) 
-					+ ":\"" + constraints[i].getValue() + "\"";
+					+ ":" + queryValue + "";
 				
 			}
 			/*
@@ -244,7 +281,7 @@ public class AuctionSearch implements IAuctionSearch {
 						SearchResult tuple = new SearchResult(itemid, name);
 						//only add the new tuple if its not already in our list
 						if ((lucene_results.size()==0 
-									|| !isInResults(lucene_results, tuple))
+									|| isInResults(lucene_results, tuple))
 								&& !isInResults(combine_results,tuple)) 
 						{
 							combine_results.add(tuple);
@@ -258,14 +295,20 @@ public class AuctionSearch implements IAuctionSearch {
 				else {
 					combine_results=lucene_results;
 				}
+				//if we have to skip over all of them
 				if(numResultsToSkip >= combine_results.size()) return results;
 				ArrayList<SearchResult> temp = new ArrayList<SearchResult>();
 				
-				int added = 0;
-				for (int i = numResultsToSkip; i < combine_results.size(); i++) {
-						temp.add(combine_results.get(i));
-						added++;
-						if(added >= numResultsToReturn) break;
+				int added = 0;//checks how many we have added to our return list
+				int skipped = 0; //how many we have to skip
+				for (int i = 0; i < combine_results.size(); i++) {
+					if(skipped > numResultsToSkip-1) {
+							temp.add(combine_results.get(i));
+							added++;
+							//end adding elements if we have already met the condition of the number to return
+							if(added >= numResultsToReturn && numResultsToReturn >0) break;
+						}
+						skipped++;
 				}
 				results = new SearchResult[temp.size()];
 				for (int i=0; i < temp.size();i++) {
@@ -278,6 +321,8 @@ public class AuctionSearch implements IAuctionSearch {
 		return results;
 	}
 
+	
+	
 	public String getXMLDataForItemId(String itemId) {
 		// TODO: Your code here!
 		try {
@@ -380,7 +425,7 @@ public class AuctionSearch implements IAuctionSearch {
 						xmlBids += biddersList.get(bidsCtr);
 
 						xmlBids += "\n\t\t\t<Time>" + 
-							rsBids.getTimestamp("BidTime") + "</Time>";
+							xml_time(rsBids.getString("BidTime")) + "</Time>";
 						xmlBids += "\n\t\t\t<Amount>$" + 
 							rsBids.getBigDecimal("Amount") + "</Amount>";
 
@@ -398,9 +443,9 @@ public class AuctionSearch implements IAuctionSearch {
 				rsBids.close();
 				stmt3.close();
 
-				xmlItems3 += "\n\t<Started>" + rsItems.getTimestamp("Started")
+				xmlItems3 += "\n\t<Started>" + xml_time(rsItems.getString("Started"))
 					+ "</Started>\n\t<Ends>" 
-					+ xmlItems3 + rsItems.getTimestamp("Ends") + "</Ends>";
+					+ xmlItems3 + xml_time(rsItems.getString("Ends")) + "</Ends>";
 
 				// Seller info
 				// location info, though not an attribute of Seller in the DTD/XML,
