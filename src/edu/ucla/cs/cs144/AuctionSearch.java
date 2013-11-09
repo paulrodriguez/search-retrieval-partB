@@ -154,7 +154,7 @@ public class AuctionSearch implements IAuctionSearch {
 	@return: returns a query for the lucene index
 	***/
 	private String createLuceneOrStatement(String[] constraint) {
-		if (constraint.length ==1 ) return ""+QueryParser.escape(constraint[0])+"";
+		if (constraint.length ==1 ) return "" + QueryParser.escape(constraint[0]) + "";
 		String value = "";
 		for (int i = 0; i < constraint.length; i++) {
 			if(!value.equals(""))
@@ -248,8 +248,8 @@ public class AuctionSearch implements IAuctionSearch {
 			}
 		}
 		
-		System.out.println("mysql Query: " + mysql_query);
-		System.out.println("lucene Query: " + lucene_query);
+		//System.out.println("mysql Query: " + mysql_query);
+		//System.out.println("lucene Query: " + lucene_query);
 		
 		try {
 				if(!lucene_query.equals("")) {
