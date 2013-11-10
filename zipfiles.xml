@@ -1,0 +1,15 @@
+<project basedir="." default="compile" name="project3c.zip">
+  <target name="clean">
+    <delete file="${ant.project.name}" />
+  </target>
+
+  <target name="compile" depends="clean">
+    <zip destfile="${ant.project.name}" basedir="." update="false" includes="*.sql README.txt build.xml src/** lib/** WebContents/**">
+	<!--
+      <zipfileset dir="src" prefix="src" />
+      <zipfileset dir="lib" prefix="lib" />
+	  <zipfileset dir="lib" prefix="lib" />
+      <include name>-->
+    </zip>
+  </target>
+</project>

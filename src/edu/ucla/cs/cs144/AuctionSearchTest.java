@@ -109,18 +109,112 @@ public class AuctionSearchTest {
 			System.out.println(result.getItemId() + ": " + result.getName());
 			
 		}
-		/*
-		System.out.println("\n===============================================================\n");
-		c1 = new SearchConstraint(FieldName.Description, "superman");
-		constraints = new SearchConstraint[1];
-		constraints[0] = 	c1;
 		
-		basicResults = as.advancedSearch(constraints, 0, 0);
-		System.out.println("advanced search: item name: superman");
+		System.out.println("\n===============================================================\n");
+		query = "superman";
+		basicResults = as.basicSearch(query, 50, 1);
+		System.out.println("Basic Seacrh Query: " + query);
 		System.out.println("Received " + basicResults.length + " results");
 		for(SearchResult result : basicResults) {
 			System.out.println(result.getItemId() + ": " + result.getName());
 			
-		}*/
+		}
+		/*
+		System.out.println("\n===============================================================\n");
+		c1 = new SearchConstraint(FieldName.ItemName, "superman");
+		c2 = new SearchConstraint(FieldName.ItemName, "batman");
+		constraints = new SearchConstraint[2];
+		constraints[0] = 	c1;
+		constraints[1] = c2;
+		basicResults = as.advancedSearch(constraints, 0, 0);
+		System.out.println("advanced search: item name: superman and batman");
+		System.out.println("Received " + basicResults.length + " results");
+		for(SearchResult result : basicResults) {
+			System.out.println(result.getItemId() + ": " + result.getName());
+			
+		}
+		
+		System.out.println("\n===============================================================\n");
+		c1 = new SearchConstraint(FieldName.ItemName, "superman batman");
+		
+		constraints = new SearchConstraint[1];
+		constraints[0] = 	c1;
+		
+		basicResults = as.advancedSearch(constraints, 0, 0);
+		System.out.println("advanced search: item name: superman or batman");
+		System.out.println("Received " + basicResults.length + " results");
+		for(SearchResult result : basicResults) {
+			System.out.println(result.getItemId() + ": " + result.getName());
+			
+		}
+		
+		System.out.println("\n===============================================================\n");
+		c1 = new SearchConstraint(FieldName.Category, "christopher radko");
+		constraints = new SearchConstraint[1];
+		constraints[0] = 	c1;
+		
+		basicResults = as.advancedSearch(constraints, 0, 0);
+		System.out.println("advanced search: category: christopher radko");
+		System.out.println("Received " + basicResults.length + " results");
+		for(SearchResult result : basicResults) {
+			System.out.println(result.getItemId() + ": " + result.getName());
+			}
+			
+			*/
+		System.out.println("\n===============================================================\n");
+		c1 = new SearchConstraint(FieldName.ItemName, "christopher radko");
+		constraints = new SearchConstraint[1];
+		constraints[0] = 	c1;
+	
+		basicResults = as.advancedSearch(constraints, 0, 1);
+		System.out.println("advanced search: item name: christopher or radko");
+		System.out.println("Received " + basicResults.length + " results");
+		for(SearchResult result : basicResults) {
+			System.out.println(result.getItemId() + ": " + result.getName());
+			
+		}
+		
+		System.out.println("\n===============================================================\n");
+	    c1 = new SearchConstraint(FieldName.ItemName, "christopher");
+		c2 = new SearchConstraint(FieldName.ItemName, "radko");
+		SearchConstraint c3 = new SearchConstraint(FieldName.SellerId, "mmspicy");
+		
+		SearchConstraint c4 = new SearchConstraint(FieldName.SellerId, "mmspicy");
+		SearchConstraint c5 = new SearchConstraint(FieldName.EndTime, "Dec-13-01 16:44:52");
+		constraints = new SearchConstraint[5];
+	    constraints[0] = 	c1;
+		constraints[1] = 	c2;
+		constraints[2] = c3;
+		constraints[3] = c4;
+		constraints[4] = c5;
+		basicResults = as.advancedSearch(constraints, 0, 0);
+		System.out.println("advanced search: item name: christopher and radko, enddate: Dec-13-01 16:44:52");
+		System.out.println("Received " + basicResults.length + " results");
+		for(SearchResult result : basicResults) {
+			System.out.println(result.getItemId() + ": " + result.getName());
+			
+		}
+		
+		
+				System.out.println("\n===============================================================\n");
+	    c1 = new SearchConstraint(FieldName.ItemName, "christopher");
+		c2 = new SearchConstraint(FieldName.ItemName, "radko");
+	    c3 = new SearchConstraint(FieldName.BidderId, "cynjun");
+		
+	    c4 = new SearchConstraint(FieldName.BidderId, "flounder7372");
+		c5 = new SearchConstraint(FieldName.BuyPrice, "15.99");
+		constraints = new SearchConstraint[5];
+	    constraints[0] = 	c1;
+		constraints[1] = 	c2;
+		constraints[2] = c3;
+		constraints[3] = c4;
+		constraints[4] = c5;
+		basicResults = as.advancedSearch(constraints, 0, 0);
+		System.out.println("advanced search: item name: christopher and radko, bidder: flounder7372 and cynjun");
+		System.out.println("Received " + basicResults.length + " results");
+		for(SearchResult result : basicResults) {
+			System.out.println(result.getItemId() + ": " + result.getName());
+			
+		}
 	}
 }

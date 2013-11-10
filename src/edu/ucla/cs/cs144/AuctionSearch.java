@@ -237,7 +237,7 @@ public class AuctionSearch implements IAuctionSearch {
 					}
 					//create a sql query for the Items table
 					if(!mysql_query.equals("")) {
-						mysql_query = " AND ";
+						mysql_query += " AND ";
 					}
 				
 					mysql_query += fName + "=\"" + value + "\"";
