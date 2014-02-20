@@ -55,6 +55,7 @@
                 </copy>
 
                 <!-- create the war file -->
+				<echo message="${build-dir}" />
                 <jar basedir="${build-dir}" destfile="${build-dir}/AuctionSearchService.aar"/>
 
     </target>
